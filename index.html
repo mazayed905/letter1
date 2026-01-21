@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مولّد خطابات جامعة الملك فيصل - الذكاء الاصطناعي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary-color: #0f5b40;
+            --ai-color: #10a37f; /* لون ChatGPT */
+            --paper-width: 210mm;
+            --paper-height: 297mm;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            gap: 20px;
+        }
+
+        /* --- لوحة التحكم --- */
+        .controls {
+            flex: 1;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            height: fit-content;
+            overflow-y: auto;
+            max-height: 95vh;
+        }
+
+        .controls h2, .controls h3 { color: var(--primary-color); font-family: 'Tajawal', sans-serif; }
+        .controls h3 { font-size: 16px; margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 5px;}
+        
+        .input-group { margin-bottom: 15px; }
+        .input-group label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        .input-group input, .input-group select, .input-group textarea {
+            width: 95%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        
+
+        /* عناصر اختيارية */
+        .input-group.opt label { display:flex; align-items:center; gap:10px; }
+        .input-group.opt input[type="checkbox"] { transform: scale(1.1); }
+        .input-group.disabled { opacity: 0.65; }
+        .input-group.disabled input,
+        .input-group.disabled textarea,
+        .input-group.disabled select {
+            background: #f3f3f3;
+            pointer-events: none;
+        }
+    .ai-section {
+            background-color: #e9f7f3;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid var(--ai-color);
+        }
+
+        .actions { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: 0.3s;
+            text-align: center;
+        }
+        .btn-update { background-color: var(--primary-color); }
+        .btn-word { background-color: #2b579a; }
+        .btn-print { background-color: #555; }
+        .btn-ai { background-color: var(--ai-color); }
+
+        /* --- ورقة المعاينة (A4) --- */
+        .preview-container {
+            flex: 2;
+            display: flex;
+            justify-content: center;
+            background: #ccc;
+            padding: 20px;
+            overflow: auto;
+        }
+
+        #letter-page {
+            width: var(--paper-width);
+            min-height: var(--paper-height);
+            background-color: white;
+            background-image: url('bg.png'); 
+            background-size: 100% 100%;
+            background-repeat: no-repeat;
+            
+            /* الهوامش المطلوبة */
+            padding: 5cm 3.175cm 2.75cm 3.175cm; 
+            box-sizing: border-box;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+            position: relative;
+            
+            /* الخط المطلوب */
+            font-family: 'ae_AlMohanad', 'Traditional Arabic', serif;
+            font-size: 16pt;
+            line-height: 1.5;
+            color: black;
+            text-align: justify;
+        }
+
+        /* تنسيقات الخطاب الداخلية */
+        .header-section { margin-bottom: 20px; }
+        .greeting { margin-bottom: 15px; }
+        .paragraph { margin-bottom: 10px; text-align: justify; }
+        
+        .closing-section {
+            margin-top: 40px;
+            text-align: center; 
+        }
+        
+        .signature-section {
+            margin-top: 20px;
+            float: left;
+            text-align: center;
+            min-width: 250px;
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #letter-page, #letter-page * { visibility: visible; }
+            #letter-page {
+                position: absolute;
+                left: 0;
+                top: 0;
+                margin: 0;
+                box-shadow: none;
+                width: 210mm;
+                height: 297mm;
+                -webkit-print-color-adjust: exact; 
+                print-color-adjust: exact;
+            }
+            .controls, .preview-container { padding: 0; background: white; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h2>إعدادات الخطاب</h2>
+        
+        <div class="input-group">
+            <label>المرسل إليه:</label>
+            <input type="text" id="recipient" value="رئيس جامعة الملك فيصل">
+        </div>
+        
+        <div class="input-group">
+            <label>الدعاء:</label>
+            <input type="text" id="invocation" value="حفظه الله">
+        </div>
+
+        <hr>
+        <h3>عناصر اختيارية (فعّل ما تحتاجه فقط)</h3>
+        <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <button class="btn" style="background-color:#777; flex:1;" onclick="setAllOpts(true)">تحديد الكل</button>
+            <button class="btn" style="background-color:#777; flex:1;" onclick="setAllOpts(false)">إلغاء الكل</button>
+        </div>
+
+        <div class="input-group opt" data-opt="ref_num">
+            <label><input type="checkbox" id="use_ref_num" checked onchange="toggleOpt('use_ref_num','ref_num')"> رقم الخطاب المشار إليه:</label>
+            <input type="text" id="ref_num" value="4229">
+        </div>
+
+        <div class="input-group opt" data-opt="ref_date_h">
+            <label><input type="checkbox" id="use_ref_date_h" checked onchange="toggleOpt('use_ref_date_h','ref_date_h')"> التاريخ الهجري:</label>
+            <input type="text" id="ref_date_h" value="29/7/1447هـ">
+        </div>
+
+        <div class="input-group opt" data-opt="ref_date_g">
+            <label><input type="checkbox" id="use_ref_date_g" checked onchange="toggleOpt('use_ref_date_g','ref_date_g')"> التاريخ الميلادي:</label>
+            <input type="text" id="ref_date_g" value="18/1/2026م">
+        </div>
+
+        <div class="input-group opt" data-opt="organizer">
+            <label><input type="checkbox" id="use_organizer" checked onchange="toggleOpt('use_organizer','organizer')"> الجهة الداعية:</label>
+            <input type="text" id="organizer" value="هيئة رعاية الأشخاص ذوي الإعاقة">
+        </div>
+
+        <div class="input-group opt" data-opt="letter_idea">
+            <label><input type="checkbox" id="use_letter_idea" checked onchange="toggleOpt('use_letter_idea','letter_idea')"> فكرة الخطاب (بدلاً من اسم الفعالية/الموضوع):</label>
+            <textarea id="letter_idea" rows="2" placeholder="اكتب فكرة الخطاب التي تريد أن يبني عليها الذكاء الاصطناعي المتن...">دعوة للمشاركة في ملتقى “تمكين قبول الأشخاص ذوي الإعاقة في الجامعات السعودية”</textarea>
+        </div>
+
+        <div class="input-group opt" data-opt="event_datetime">
+            <label><input type="checkbox" id="use_event_datetime" checked onchange="toggleOpt('use_event_datetime','event_datetime')"> المكان والزمان:</label>
+            <input type="text" id="event_datetime" value="يوم الثلاثاء 10 فبراير 2026م من الساعة 10:00 صباحا بمقر الهيئة بالرياض">
+        </div>
+
+        <div class="input-group opt" data-opt="my_dept">
+            <label><input type="checkbox" id="use_my_dept" checked onchange="toggleOpt('use_my_dept','my_dept')"> الجهة المشاركة (نحن):</label>
+            <input type="text" id="my_dept" value="عمادة شؤون الطلاب ممثلة في وحدة ذوي الإعاقة">
+        </div>
+
+        <div class="ai-section">
+            <h3 style="margin-top: 0;">🤖 صياغة المتن بالذكاء الاصطناعي</h3>
+            
+            <button class="btn btn-ai" style="width: 100%; margin-bottom: 10px;" onclick="generateAIPrompt()">1. توليد أمر (Prompt) للنسخ</button>
+            
+            <textarea id="ai_prompt" rows="4" readonly placeholder="سيظهر هنا الأمر الجاهز للنسخ..."></textarea>
+            
+            <button class="btn" style="background-color: #333; width: 100%; margin-top: 5px; margin-bottom: 15px;" onclick="copyPrompt()">📋 2. نسخ الأمر (لـ Gemini / ChatGPT)</button>
+            
+            <div class="input-group">
+                <label>3. الصق رد الذكاء الاصطناعي هنا (الموضوع النهائي):</label>
+                <textarea id="ai_response" rows="7" oninput="generateLetter()">إشارة إلى خطاب سعادتكم رقم (4229) وتاريخ (29/7/1447هـ) الموافق (18/1/2026م)، وإلى الدعوة الكريمة من هيئة رعاية الأشخاص ذوي الإعاقة للمشاركة في ملتقى “تمكين قبول الأشخاص ذوي الإعاقة في الجامعات السعودية”، والذي سيعقد يوم الثلاثاء 10 فبراير 2026م من الساعة 10:00 صباحا بمقر الهيئة بالرياض، تؤكد عمادة شؤون الطلاب ممثلة في وحدة ذوي الإعاقة على أهمية هذه المشاركة للجامعة؛ بوصفها فرصة لتبادل الخبرات وتوثيق التعاون، ومناقشة التحديات المرتبطة بإجراءات القبول والتسجيل، واستعراض الحلول التطويرية التي تسهم في رفع الكفاءة، بما يتماشى مع مستهدفات رؤية المملكة 2030.
+عليه، قد يرى سعادتكم الموافقة على مشاركة عمادة شؤون الطلاب ممثلة في وحدة ذوي الإعاقة لحضور الملتقى.</textarea>
+            </div>
+        </div>
+
+        <hr>
+        <div class="input-group">
+            <label>التوقيع (المنصب):</label>
+            <input type="text" id="signer_title" value="عميد شؤون الطلاب">
+        </div>
+        <div class="input-group">
+            <label>التوقيع (الاسم):</label>
+            <input type="text" id="signer_name" value="د. محمد بن مناحي السبيعي">
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-update" onclick="generateLetter()">🔄 تحديث المعاينة</button>
+            <button class="btn btn-word" onclick="exportToWord()">📄 تصدير Word (DOCX)</button>
+            <button class="btn btn-print" onclick="window.print()">🖨 طباعة / PDF</button>
+        </div>
+    </div>
+
+    <div class="preview-container">
+        <div id="letter-page">
+            <div class="content-layer" id="letter-content">
+                </div>
+        </div>
+    </div>
+
+    <script>
+
+        // تفعيل/تعطيل العناصر الاختيارية
+        function toggleOpt(chkId, fieldId) {
+            const chk = document.getElementById(chkId);
+            const field = document.getElementById(fieldId);
+            if (!chk || !field) return;
+            field.disabled = !chk.checked;
+            const group = field.closest('.input-group');
+            if (group) group.classList.toggle('disabled', !chk.checked);
+        }
+
+        function syncOpts() {
+            toggleOpt('use_ref_num','ref_num');
+            toggleOpt('use_ref_date_h','ref_date_h');
+            toggleOpt('use_ref_date_g','ref_date_g');
+            toggleOpt('use_organizer','organizer');
+            toggleOpt('use_letter_idea','letter_idea');
+            toggleOpt('use_event_datetime','event_datetime');
+            toggleOpt('use_my_dept','my_dept');
+        }
+
+        function setAllOpts(state) {
+            const ids = [
+                'use_ref_num','use_ref_date_h','use_ref_date_g',
+                'use_organizer','use_letter_idea','use_event_datetime','use_my_dept'
+            ];
+            ids.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = state;
+            });
+            syncOpts();
+        }
+
+        document.addEventListener('DOMContentLoaded', syncOpts);
+
+        // دالة توليد الـ Prompt بناءً على مدخلات المستخدم
+        function generateAIPrompt() {
+            const recipient = (document.getElementById('recipient')?.value || '').trim() || 'رئيس جامعة الملك فيصل';
+
+            // الفكرة (أساس الصياغة)
+            const ideaOn = document.getElementById('use_letter_idea')?.checked;
+            const idea = ideaOn ? ((document.getElementById('letter_idea')?.value || '').trim()) : '';
+
+            // عناصر اختيارية
+            const refNumOn = document.getElementById('use_ref_num')?.checked;
+            const refDateHOn = document.getElementById('use_ref_date_h')?.checked;
+            const refDateGOn = document.getElementById('use_ref_date_g')?.checked;
+            const organizerOn = document.getElementById('use_organizer')?.checked;
+            const eventDTOn = document.getElementById('use_event_datetime')?.checked;
+            const myDeptOn = document.getElementById('use_my_dept')?.checked;
+
+            const refNum = (document.getElementById('ref_num')?.value || '').trim();
+            const refDateH = (document.getElementById('ref_date_h')?.value || '').trim();
+            const refDateG = (document.getElementById('ref_date_g')?.value || '').trim();
+            const organizer = (document.getElementById('organizer')?.value || '').trim();
+            const eventDateTime = (document.getElementById('event_datetime')?.value || '').trim();
+            const myDept = (document.getElementById('my_dept')?.value || '').trim();
+
+            const bullets = [];
+            const add = (txt) => { if (txt && txt.trim()) bullets.push('- ' + txt.trim()); };
+
+            // الإشارة إلى خطاب سابق (يجمع العناصر المختارة فقط)
+            if (refNumOn || refDateHOn || refDateGOn) {
+                const parts = [];
+                if (refNumOn && refNum) parts.push(`رقم (${refNum})`);
+                if (refDateHOn && refDateH) parts.push(`وتاريخ (${refDateH})`);
+                if (refDateGOn && refDateG) parts.push(`الموافق (${refDateG})`);
+                if (parts.length) add(`الإشارة إلى خطاب ${parts.join(' ')}.`);
+            }
+
+            if (organizerOn && organizer) add(`الجهة الداعية/المبادِرة: (${organizer}).`);
+            if (eventDTOn && eventDateTime) add(`المكان والزمان: (${eventDateTime}).`);
+            if (myDeptOn && myDept) add(`الجهة المشاركة (نحن): (${myDept}).`);
+
+            const ideaLine = idea ? `فكرة الخطاب الأساسية: (${idea}).` : 'فكرة الخطاب الأساسية: (اكتب الفكرة هنا ثم أعد توليد الأمر).';
+            const closingLine = (myDeptOn && myDept)
+                ? `اختم بطلب الموافقة على ما ورد، وبخاصة الموافقة على مشاركة (${myDept}) وفق النظام.`
+                : 'اختم بطلب الموافقة على ما ورد وفق النظام.';
+
+            const promptText = `بصفتك خبيراً في صياغة الخطابات الرسمية للجامعات السعودية، اكتب متن خطاب رسمي (فقرتين إلى ثلاث فقرات) موجه إلى سعادة/ ${recipient} بجامعة الملك فيصل.
+${ideaLine}
+
+البيانات الاختيارية (أدرجها فقط إذا كانت مذكورة أدناه):
+${bullets.length ? bullets.join('\n') : '- لا توجد بيانات إضافية.'}
+
+متطلبات الصياغة:
+- أسلوب رسمي دقيق وواضح.
+- المتن فقط دون تحية أو توقيع أو عناوين.
+- تجنّب التكرار والإطالة غير اللازمة.
+- ${closingLine}`;
+
+            document.getElementById('ai_prompt').value = promptText;
+        }
+
+        // دالة نسخ الـ Prompt
+        function copyPrompt() {
+            const text = document.getElementById('ai_prompt')?.value || '';
+            if (!text.trim()) return alert('لا يوجد أمر للنسخ بعد.');
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text)
+                    .then(() => alert('تم نسخ الأمر! الصقه في ChatGPT/Gemini.'))
+                    .catch(() => fallbackCopy(text));
+            } else {
+                fallbackCopy(text);
+            }
+
+            function fallbackCopy(t) {
+                const ta = document.createElement('textarea');
+                ta.value = t;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                try { document.execCommand('copy'); alert('تم نسخ الأمر! الصقه في ChatGPT/Gemini.'); }
+                catch { alert('تعذر النسخ تلقائياً. انسخ يدوياً من مربع الأمر.'); }
+                document.body.removeChild(ta);
+            }
+        }
+
+        // دالة توليد الخطاب في المعاينة
+        function generateLetter() {
+            const recipient = document.getElementById('recipient').value;
+            const invocation = document.getElementById('invocation').value;
+            // أخذ النص مباشرة من مربع الرد الخاص بالذكاء الاصطناعي
+            const mainContentText = document.getElementById('ai_response').value; 
+            
+            const signerTitle = document.getElementById('signer_title').value;
+            const signerName = document.getElementById('signer_name').value;
+
+            let html = ``;
+
+            // 1. المرسل إليه
+            html += `<div class="header-section">
+                        <span style="font-weight:bold;">سعادة/ ${recipient}</span>
+                        <span style="float:left; margin-left: 50px;">${invocation}</span>
+                     </div>`;
+
+            // 2. التحية
+            html += `<div class="greeting">السلام عليكم ورحمة الله وبركاته … وبعد،</div>`;
+
+            // 3. المتن (المولد بواسطة AI)
+            // تحويل الأسطر الجديدة إلى فقرات HTML
+            const paragraphs = mainContentText.split('\n').filter(p => p.trim() !== '');
+            paragraphs.forEach(p => {
+                html += `<div class="paragraph">${p}</div>`;
+            });
+
+            // 4. الختام والتوقيع
+            html += `<div class="closing-section">وتقبلوا سعادتكم خالص التحية والتقدير،</div>`;
+            html += `<div class="signature-section">
+                        <div style="margin-bottom:40px; font-weight:bold;">${signerTitle}</div>
+                        <div style="font-weight:bold;">${signerName}</div>
+                     </div>`;
+            html += `<div style="clear:both;"></div>`;
+
+            document.getElementById('letter-content').innerHTML = html;
+        }
+
+        // دالة تصدير الوورد
+        function exportToWord() {
+            const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
+                "xmlns:w='urn:schemas-microsoft-com:office:word' "+
+                "xmlns='http://www.w3.org/TR/REC-html40'>"+
+                "<head><meta charset='utf-8'><title>Export HTML to Word</title>"+
+                "<style>"+
+                "body { font-family: 'ae_AlMohanad', 'Traditional Arabic', serif; font-size: 16pt; direction: rtl; text-align: justify; }" +
+                "@page { size: 210mm 297mm; margin: 5cm 3.175cm 2.75cm 3.175cm; }"+
+                ".signature-section { float: left; text-align: center; }"+
+                ".closing-section { text-align: center; }"+
+                "</style></head>"+
+                "<body style=\"background-image: url('bg.png'); background-repeat: no-repeat; background-size: 100% 100%;\">";
+            
+            const content = document.getElementById('letter-content').innerHTML;
+            const footer = "</body></html>";
+            
+            const sourceHTML = header + content + footer;
+            const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+            const fileDownload = document.createElement("a");
+            document.body.appendChild(fileDownload);
+            fileDownload.href = source;
+            fileDownload.download = 'KFU_Letter_AI.doc';
+            fileDownload.click();
+            document.body.removeChild(fileDownload);
+        }
+
+        // تشغيل أولي
+        generateLetter();
+    </script>
+</body>
+</html>
